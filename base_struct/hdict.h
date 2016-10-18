@@ -29,14 +29,18 @@ typedef struct dict{
 }dict;
 
 #define dictHashKey(d,key) (d)->type->hashFunction(key)
+#define dictKeyFree(d,key) (d)->type->keyFree(key)
+#define dictValFree(d,val) (d)->type->valFree(val)
 
+#define DICT_OK 0;
+#define DICT_ERR -1;
 
 dict *dictCreate(dictType *type);
 int dictExpand(dict *d, unsigned long size);
 int dictAdd(dict *d,void *key,void *val);
+dictEntry* dictFind(dict *d, const void *key);
 int dictReplace(dict *d,void *key,void *val);
 void dictDelete(dict *d,const void *key);
-dictEntry* dictFind(dict *d,const void *key);
 void* dictFetchValue(dict *d,const void *key);
 int dictResize(dict *d);
 int dictRehash(dict *d,int n);
