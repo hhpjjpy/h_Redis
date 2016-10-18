@@ -77,5 +77,16 @@ void FreeHstring(hstring *hs){
 	free(hs);
  }
 
+int HsCampare(hstring *hs1,hstring *hs2)
+{
+	return strcmp(hs1->ptr,hs2->ptr);
+}
+
+void HsFree(hstring *hs)
+{
+	free(hs->ptr);
+	free(hs);
+}
+
 
 #endif

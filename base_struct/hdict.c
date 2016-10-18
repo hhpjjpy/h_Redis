@@ -48,6 +48,7 @@ int dictExpand(dict *d, unsigned long size)
 	ht.size = realsize;
 	ht.used = 0;
 	ht.table = (dictEntry**)malloc(realsize*sizeof(dictEntry*));
+	memset(ht.table,0, realsize*sizeof(dictEntry*));
 	
 	//³õ´Î³õÊ¼»¯
 	if (d->ht[0].table == NULL) {
@@ -79,7 +80,7 @@ static int  isNeedExpandSize(dict *d)
 
 int dictAdd(dict *d,void *key,void *val)
 {
-	if (!isNeedExpandSize(d)) return DICT_ERR;
+	if (isNeedExpandSize(d)!=0) return DICT_ERR;
 
 	dictht *ht_ptr = dictIsRehashing(d) ? &d->ht[1] : &d->ht[0];
 
@@ -87,7 +88,7 @@ int dictAdd(dict *d,void *key,void *val)
 
 	dictEntry *p = ht_ptr->table[index];
 	while (p){
-		if (d->type->keyCompare(p->key, key))
+		if (d->type->keyCompare(p->key, key)==0)
 			return DICT_ERR;//keyÒÑ¾­´æÔÚÊ±ÎÞ·¨ÔÙÌí¼ÓÏàÍ¬µÄkey
 		p = p->next;
 	}
@@ -114,7 +115,7 @@ dictEntry* dictFind(dict *d, const void *key)//keyÓÐ¿ÉÄÜ´æÔÚÓÚ2¸ö¿Õ¼äÖÐµÄÈÎºÎÒ»¸
 
 		dictEntry *p = ht.table[index];
 		while (p){
-			if (d->type->keyCompare(p->key, key))
+			if (d->type->keyCompare(p->key, key)==0)
 				return p;
 			p = p->next;
 		}
@@ -141,7 +142,7 @@ void dictDelete(dict *d,const void *key)
 		dictEntry *p = ht_ptr->table[index];
 		dictEntry *pre = NULL;
 		while (p){
-			if (d->type->keyCompare(p->key, key)){
+			if (d->type->keyCompare(p->key, key)==0){
 				
 				if (pre) pre->next = p->next;
 				else  ht_ptr->table[index] = NULL;
