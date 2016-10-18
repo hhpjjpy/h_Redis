@@ -1,4 +1,4 @@
-#include "hlist.h"
+ï»¿#include "hlist.h"
 
 #include <stdlib.h>
 #include <malloc.h>
@@ -79,7 +79,7 @@ list* listInsertNode(list *list, listNode *oldNode,void *value,int direction)
 	node->m_prev = NULL;
 	node->m_next = NULL;
 
-	if (direction > 0){//Ïòºó·½Ïò
+	if (direction > 0){//å‘åŽæ–¹å‘
 		if (!oldNode->m_next){
 			oldNode->m_next = node;
 			node->m_prev = oldNode;
