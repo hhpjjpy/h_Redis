@@ -1,11 +1,12 @@
-#include "hdict.h"
+ï»¿#include "hdict.h"
 
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
 
-#define USED_UP_NUMBER 10 
+#define USED_UP_NUMBER 2 
 #define dictIsRehashing(d) (d->rehashidx != -1) 
 
 
@@ -42,6 +43,7 @@ int dictExpand(dict *d, unsigned long size)
 	int realsize = GetNextSuitableSzie(size);
 	if (dictIsRehashing(d) || d->ht[0].used > size)
 		return DICT_ERR;
+		
 	if (realsize <= d->ht[0].size) return DICT_ERR;
 
 	dictht ht;
@@ -50,7 +52,7 @@ int dictExpand(dict *d, unsigned long size)
 	ht.table = (dictEntry**)malloc(realsize*sizeof(dictEntry*));
 	memset(ht.table,0, realsize*sizeof(dictEntry*));
 	
-	//³õ´Î³õÊ¼»¯
+	//åˆæ¬¡åˆå§‹åŒ–
 	if (d->ht[0].table == NULL) {
 		d->ht[0] = ht;
 		return DICT_OK;
@@ -59,7 +61,7 @@ int dictExpand(dict *d, unsigned long size)
 	d->ht[1] = ht;
 	d->rehashidx = 0;
 
-	return DICT_ERR;
+	return DICT_OK;
 }
 
 static int  isNeedExpandSize(dict *d)
@@ -72,7 +74,7 @@ static int  isNeedExpandSize(dict *d)
 	}
 
 	if (d->ht[0].used / d->ht[0].size > USED_UP_NUMBER)
-		return dictExpand(d, 2 * (d->ht[0].size));
+		return dictExpand(d, 2 * (d->ht[0].used));
 
 	return DICT_OK;
 
@@ -89,7 +91,7 @@ int dictAdd(dict *d,void *key,void *val)
 	dictEntry *p = ht_ptr->table[index];
 	while (p){
 		if (d->type->keyCompare(p->key, key)==0)
-			return DICT_ERR;//keyÒÑ¾­´æÔÚÊ±ÎŞ·¨ÔÙÌí¼ÓÏàÍ¬µÄkey
+			return DICT_ERR;//keyå·²ç»å­˜åœ¨æ—¶æ— æ³•å†æ·»åŠ ç›¸åŒçš„key
 		p = p->next;
 	}
 
@@ -105,10 +107,10 @@ int dictAdd(dict *d,void *key,void *val)
 	return DICT_OK;
 }
 
-dictEntry* dictFind(dict *d, const void *key)//keyÓĞ¿ÉÄÜ´æÔÚÓÚ2¸ö¿Õ¼äÖĞµÄÈÎºÎÒ»¸ö¡£
+dictEntry* dictFind(dict *d, const void *key)//keyæœ‰å¯èƒ½å­˜åœ¨äº2ä¸ªç©ºé—´ä¸­çš„ä»»ä½•ä¸€ä¸ªã€‚
 {
 	if (d->ht[0].size == 0) return NULL;
-	int hashindex = dictHashKey(d, key);//ÕâÀï½«¼ÆËãÌá³öÀ´£¬±ÜÃâÔÚÑ­»·ÖĞÖØ¸´¼ÆËã¡£
+	int hashindex = dictHashKey(d, key);//è¿™é‡Œå°†è®¡ç®—æå‡ºæ¥ï¼Œé¿å…åœ¨å¾ªç¯ä¸­é‡å¤è®¡ç®—ã€‚
 	for (int i = 0; i <= 1; i++){
 		dictht ht = d->ht[i];
 		int index = hashindex % ht.size;
@@ -119,7 +121,7 @@ dictEntry* dictFind(dict *d, const void *key)//keyÓĞ¿ÉÄÜ´æÔÚÓÚ2¸ö¿Õ¼äÖĞµÄÈÎºÎÒ»¸
 				return p;
 			p = p->next;
 		}
-		if (!dictIsRehashing(d)) return NULL; //µ±Ã»ÓĞ·¢Éúrehash¹ı³ÌÊ±£¬Ã»ÕÒµ½¾Í¿ÉÍË³ö
+		if (!dictIsRehashing(d)) return NULL; //å½“æ²¡æœ‰å‘ç”Ÿrehashè¿‡ç¨‹æ—¶ï¼Œæ²¡æ‰¾åˆ°å°±å¯é€€å‡º
 	}
 	return NULL;
 }
@@ -157,6 +159,8 @@ void dictDelete(dict *d,const void *key)
 			pre = p;
 			p = p->next;
 		}
+
+		if (!dictIsRehashing(d)) return;
 	}
 
 }
@@ -205,17 +209,18 @@ int dictRehash(dict *d,int n)
 		}
 
 		d->ht[0].table[d->rehashidx] = NULL;
-		d->rehashidx++;//²»ÒªÍü¼Ç¸üĞÂÕâ¸öÖØÒªµÄ±êÖ¾Î»£¬ÕâÑù²ÅÄÜ×ªÈëÏÂÒ»¸ö¡£
+		d->rehashidx++;//ä¸è¦å¿˜è®°æ›´æ–°è¿™ä¸ªé‡è¦çš„æ ‡å¿—ä½ï¼Œè¿™æ ·æ‰èƒ½è½¬å…¥ä¸‹ä¸€ä¸ªã€‚
 	}
 
-	if (d->ht[0].used == 0){//rehashÍê³ÉÊ±Òª×¢Òâ°ÑtableÇĞ»»»ØÈ¥¡£ht[0]ÊÇÖ÷±í£¬ht[1]Ö»ÓÃÓÚµ÷Õû´óĞ¡Ê±±ÜÃâĞÔÄÜÆ¿¾±³öÏÖ¡£ÕâÑù¿ÉÒÔ·Ö¶à´ÎÀ´Ö´ĞĞÀ©Èİ¹ı³Ì¡£
+	if (d->ht[0].used == 0){//rehashå®Œæˆæ—¶è¦æ³¨æ„æŠŠtableåˆ‡æ¢å›å»ã€‚ht[0]æ˜¯ä¸»è¡¨ï¼Œht[1]åªç”¨äºè°ƒæ•´å¤§å°æ—¶é¿å…æ€§èƒ½ç“¶é¢ˆå‡ºç°ã€‚è¿™æ ·å¯ä»¥åˆ†å¤šæ¬¡æ¥æ‰§è¡Œæ‰©å®¹è¿‡ç¨‹ã€‚
 		d->rehashidx = -1;
 		free(d->ht[0].table);
 		d->ht[0] = d->ht[1];
 		d->ht[1].table = NULL;
 		d->ht[1].size = 0;
 		d->ht[1].used = 0;
-		//±¾À´¿ÉÒÔÍ¨¹ı·µ»Ø²»Í¬µÄÖµÀ´È·¶¨£¬´¦ÓÚ²»Í¬µÄ×´Ì¬¡£ÏÖÔÚÔİÊ±ºöÂÔ¡£
+		//æœ¬æ¥å¯ä»¥é€šè¿‡è¿”å›ä¸åŒçš„å€¼æ¥ç¡®å®šï¼Œå¤„äºä¸åŒçš„çŠ¶æ€ã€‚ç°åœ¨æš‚æ—¶å¿½ç•¥ã€‚
+		return 1;//è¡¨ç¤ºå·²å®Œæˆ
 	}
 
 	return DICT_OK;
@@ -235,7 +240,7 @@ int dictRehashMillisenconeds(dict *d, int ms)
 	long long start = timeInMilliseconds();
 	int rehashes = 0;
 
-	while (dictRehash(d, 100)) {
+	while (dictRehash(d, 100)==0) {
 		rehashes += 100;
 		if (timeInMilliseconds() - start > ms) break;
 	}
