@@ -135,9 +135,12 @@ int dictReplace(dict *d,void *key,void *val)
 	return DICT_OK;
 }
 
-void dictDelete(dict *d,const void *key)
+int dictDelete(dict *d,const void *key)
 {
 	int hashindex = dictHashKey(d, key);
+	int flag = 0;
+	if (d->ht[0].size == 0) return DICT_ERR;
+
 	for (int i = 0; i <= 1; i++){
 		dictht *ht_ptr = &d->ht[i];
 		int index = hashindex%(ht_ptr->size);
@@ -154,14 +157,17 @@ void dictDelete(dict *d,const void *key)
 				free(p);
 
 				ht_ptr->used--;
+				flag++;
 			}
 
 			pre = p;
 			p = p->next;
 		}
 
-		if (!dictIsRehashing(d)) return;
+		if (!dictIsRehashing(d)) return (flag == 0 ? DICT_ERR : DICT_OK);
 	}
+
+	return (flag == 0? DICT_ERR:DICT_OK);
 
 }
 

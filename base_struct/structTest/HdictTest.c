@@ -78,13 +78,10 @@ void deleteCmdFun(dict *d,parArg *ptr)
 {
 	if (ptr->number != 2)
 		printf("invalid parameter \n");
-	dictDelete(d,ptr->argv[1]);
-
-	if (dictFind(d, ptr->argv[1]) == NULL)
-		printf("delete OK");
+	if(dictDelete(d,ptr->argv[1])==0)
+		printf("delete OK\n");
 	else
-		printf("delete Err");
-
+		printf("delete Err\n");
 }
 
 void getCmdFun(dict *d, parArg *ptr)
