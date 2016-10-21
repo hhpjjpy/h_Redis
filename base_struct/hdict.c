@@ -254,10 +254,11 @@ int dictRehashMillisenconeds(dict *d, int ms)
 
 }
 
-void dictEmpty(dict *d)
+void dictFree(dict *d)
 {
 	for (int i = 0; i <= 1; i++){
 		dictht *ht_ptr = &d->ht[i];
+		if (ht_ptr == NULL) continue;
 		for (int j = 0; j < ht_ptr->size; j++){
 			dictEntry *entry = ht_ptr->table[j];
 			while (entry){
@@ -273,7 +274,6 @@ void dictEmpty(dict *d)
 
 			ht_ptr->table[j] = NULL;
 		}
-		free(ht_ptr);
 	}
 
 	free(d);

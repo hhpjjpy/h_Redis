@@ -45,6 +45,6 @@ void* dictFetchValue(dict *d,const void *key);
 int dictResize(dict *d);
 int dictRehash(dict *d,int n);
 int dictRehashMilliseconeds(dict *d,int ms);
-void dictEmpty(dict *d);
+void dictFree(dict *d);
 
 #endif

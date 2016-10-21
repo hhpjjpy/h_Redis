@@ -316,13 +316,20 @@ int main()
 			printf("invalid parameter \n");
 			continue;
 		}
-		if (strcmp(par->argv[0], "exit") == 0)
+		if (strcmp(par->argv[0], "exit") == 0){
+			
+			dictFree(TestDict);
+			printf("Test exit \n");
 			return -1;
+		}
+			
 
 
 		eatPar(TestDict,par);
 
 	}
+
+
 
 }
 
