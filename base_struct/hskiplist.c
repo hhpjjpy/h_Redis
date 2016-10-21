@@ -26,6 +26,7 @@ hSkipList* CreateSkipList(hSkipType *type)
 static hSkipListNode** GetPreptrArr(hSkipList *splist, void *val)
 {
 	static hSkipListNode* ptrArr[MAXLEVEL];//设置为静态，避免每次都分配释放内存
+	memset(ptrArr, 0, MAXLEVEL*sizeof(hSkipListNode*));
 	hSkipListNode *sptr = splist->head;
 	unsigned int power = splist->type->SetPower(val);
 	int i = splist->maxLevel;
@@ -41,7 +42,7 @@ static hSkipListNode** GetPreptrArr(hSkipList *splist, void *val)
 
 int SkipListAdd(hSkipList *splist,void *val)
 {
-	int randLevel = (rand() % (splist->maxLevel));
+	int randLevel = (rand() % (splist->maxLevel))+1;//这里取余之后实际范围为0-xxx  ,0值要注意，没有0层这样，后面分配的时候都依赖这个值
 
 	hSkipListNode *spNode = (hSkipListNode*)malloc(sizeof(hSkipListNode));
 	if (spNode == NULL) return -1;
@@ -54,7 +55,7 @@ int SkipListAdd(hSkipList *splist,void *val)
 	memset(spNode->nextArr,0,randLevel*sizeof(hSkipListNode*));
 	spNode->power = splist->type->SetPower(val);
 	spNode->value = val;
-
+	
 	/*
 	*可利用查找过程找出节点的前一个节点的指针数组，这样可实现O(lonN)的时间复杂度
 	*/
@@ -66,7 +67,7 @@ int SkipListAdd(hSkipList *splist,void *val)
 		ptr[i]->nextArr[i] = spNode;
 	}
 
-	return 1;
+	return 0;
 
 	/*
 	*由于插入后每层仍是一个有序列表，即若元素存在于某层则在该层中的位置是确定的。故插入操作相当于给每层的
@@ -145,9 +146,9 @@ void FreeSkipList(hSkipList *splist)
 		hSkipListNode *pre = p;
 		p = p->nextArr[0];
 
-		splist->type->ValFree(p->value);
-		free(p->nextArr);
-		free(p);
+		splist->type->ValFree(pre->value);
+		free(pre->nextArr);
+		free(pre);
 	}
 
 	free(splist->head->nextArr);
