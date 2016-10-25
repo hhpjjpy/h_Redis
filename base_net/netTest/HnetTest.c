@@ -1,4 +1,4 @@
-#include "../hnet.h"
+ï»¿#include "../hnet.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -39,7 +39,7 @@ int runServer()
 	char ip[16];
 	int port;
 
-	clifd = 0; //Ö»ÄÜ´¦ÀíÒ»¸öÁ¬½Ó£¬
+	clifd = 0; //åªèƒ½å¤„ç†ä¸€ä¸ªè¿æ¥ï¼Œ
 	if ((clifd = netTcpAccept(err, fd, ip, 16, &port)) < 0){
 		printf("netTcpAccept error message : %s \n", err);
 		return -1;
