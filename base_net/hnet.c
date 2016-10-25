@@ -15,7 +15,6 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-
 #define ANET_ERR_LEN 256
 
 
@@ -76,7 +75,7 @@ int netTcpKeepAlive(char *err,int fd,int interval)
 #ifdef __linux__
 	//linux下默认的检查时间是过长，有时，需要手动设置
 
-	val = internal;
+	val = interval;
 	if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) == -1)
 	{
 		netSetError(err, "setsockopt SO_KEEPALIVE: %s ", strerror(errno));
@@ -153,12 +152,12 @@ int netGenericResolve(char *err,char *host,char *ipbuf,size_t ipbuf_len,int flag
 	return NET_OK;
 }
 
-int anetResolve(char *err, char *host, char *ipbuf, size_t ipbuf_len) {
-	return anetGenericResolve(err, host, ipbuf, ipbuf_len, 0);
+int netResolve(char *err, char *host, char *ipbuf, size_t ipbuf_len) {
+	return netGenericResolve(err, host, ipbuf, ipbuf_len, 0);
 }
 
-int anetResolveIP(char *err, char *host, char *ipbuf, size_t ipbuf_len) {
-	return anetGenericResolve(err, host, ipbuf, ipbuf_len, 1);
+int netResolveIP(char *err, char *host, char *ipbuf, size_t ipbuf_len) {
+	return netGenericResolve(err, host, ipbuf, ipbuf_len, 1);
 }
 
 static int netSetReuseAddr(char *err,int fd)
@@ -392,7 +391,7 @@ int netTcpAccept(char *err,int s,char *ip,size_t ip_len,int *port)
 	if (sa.ss_family == AF_INET){
 		struct sockaddr_in *s = (struct sockaddr_in *)&sa;
 		if (ip) inet_ntop(AF_INET,(void*)&(s->sin_addr),ip,ip_len);
-		if (port) *port = btohs(s->sin_port);
+		if (port) *port = ntohs(s->sin_port);
 	}
 
 	return fd;
