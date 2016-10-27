@@ -89,7 +89,18 @@ int runClient()
 		}
 
 		int ret = 0;
-		if ((ret = netRead(clifd, buf, 23)) <= 0){
+		char num[4];
+		if ((ret = netRead(clifd, num, 4)) <= 0){
+			printf("read error \n");
+			close(clifd);
+			return -1;
+		}
+		int count = 0;
+		memcpy(&count,&num,sizeof(int));
+
+		printf(" count is : %d \n",count);
+
+		if ((ret = netRead(clifd, buf, count)) <= 0){
 			printf("read error \n");
 			close(clifd);
 			return -1;
