@@ -27,7 +27,7 @@ error:
 	free(ae);
 	free(ae->events);
 	free(ae->fired);
-	aeApifree(ae);
+	aeApiFree(ae);
 	return NULL;
 }
 
@@ -44,7 +44,7 @@ void aeStop(aeEventLoop *eventLoop)
 	eventLoop->stop = 1;
 }
 
-int aeCreateFlieEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc proc, void *clientDatta)
+int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc proc, void *clientDatta)
 {
 	if (aeApiAddEvent(eventLoop, fd, mask) != AE_OK)
 		return AE_ERR;
@@ -59,7 +59,7 @@ int aeCreateFlieEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc proc,
 void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask)
 {
 	if (aeApiDelEvent(eventLoop, fd, mask) != AE_OK)
-		return AE_ERR;
+		return ;
 
 	aeFileEvent *fileevent = &(eventLoop->events[fd]);
 	if (mask & (fileevent->mask)& AE_READ)
@@ -67,8 +67,6 @@ void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask)
 	if (mask&(fileevent->mask)&AE_WRITE)
 		fileevent->wfileProc = NULL;
 	fileevent->mask &= ~mask;
-
-	return AE_OK;
 }
 
 int aeGetFilevent(aeEventLoop *eventLoop,int fd)
@@ -78,9 +76,9 @@ int aeGetFilevent(aeEventLoop *eventLoop,int fd)
 
 int aeProcessEvents(aeEventLoop *eventLoop,int flags)
 {
-	struct timeval  interval;
-	interval.tv_usec = 10000;
-	int readyNum = aeApiPoll(eventLoop,&interval);
+	int interval = -1; 
+	int readyNum = aeApiPoll(eventLoop,interval);
+	if (readyNum ==-1 ) return -1;
 	for (int i = 0; i < readyNum; i++){
 		aeFileEvent *fileEvent = &(eventLoop->events[eventLoop->fired[i].fd]);
 		if ((eventLoop->fired[i].mask)&(fileEvent->mask)&AE_READ)
@@ -95,10 +93,7 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags)
 	return readyNum;
 }
 
-int aeWait(aeEventLoop *eventLoop)
-{
-	return  0;//暂时不实现定时器相关的函数
-}
+
 
 void aeMain(aeEventLoop *eventLoop)
 {

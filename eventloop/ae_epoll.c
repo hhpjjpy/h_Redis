@@ -63,19 +63,20 @@ static int aeApiDelEvent(aeEventLoop *eventLoop,int fd,int delmask)
 		mask &= ~delmask;
 		if (mask&AE_READ) ev.events |= EPOLLIN;
 		if (mask&AE_WRITE) ev.events |= EPOLLOUT;
+		if (mask&AE_READ == 0 && mask&AE_WRITE) //可读可写事件都不存在时，为删除该fd;
+			opflag = EPOLL_CTL_DEL;
 	}
-
 	if (epoll_ctl(state->epfd, opflag, fd, &ev) == -1)
 		return -1;
 	
 	return 0;
 }
 
-static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tv)
+static int aeApiPoll(aeEventLoop *eventLoop, int timeout)
 {
 	aeApiState *state = (aeApiState*)eventLoop->apidata;
 	int readyNum = 0;
-	if ((readyNum = epoll_wait(state->epfd, state->enents, eventLoop->setSize, tv)) == -1) return -1;
+	if ((readyNum = epoll_wait(state->epfd, state->enents, eventLoop->setSize, timeout)) == -1) return -1;
 	for (int i = 0; i < readyNum; i++){
 		struct epoll_event ev = state->enents[i];
 		int mask = AE_NONE;

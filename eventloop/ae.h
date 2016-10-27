@@ -8,20 +8,9 @@
 #define AE_READ 1
 #define AE_WRITE 2
 
-//暂时不实现定时器
-typedef struct aeEventLoop
-{
-	int maxfd; //注册到eventloop中fd的最大值
-	int setSize;//能监控的fd数量
-	aeFileEvent *events; //注册的事件
-	aeFiledEvent *fired; //触发了的，事件
-	int stop;
-	void *apidata;
-}aeEventLoop;
+struct aeEventLoop;
 
-
-typedef void (*aeFileProc)(aeEventLoop *eventloop, int fd, void *clientDate, int mask);
-
+typedef void(*aeFileProc)(struct aeEventLoop *eventloop, int fd, void *clientDate, int mask);
 
 typedef struct aeFileEvent
 {
@@ -38,6 +27,19 @@ typedef struct aeFiledEvent
 }aeFiledEvent;
 
 
+//暂时不实现定时器
+typedef struct aeEventLoop
+{
+	int maxfd; //注册到eventloop中fd的最大值
+	int setSize;//能监控的fd数量
+	aeFileEvent *events; //注册的事件
+	aeFiledEvent *fired; //触发了的，事件
+	int stop;
+	void *apidata;
+}aeEventLoop;
+
+
+
 aeEventLoop* aeCreateEventLoop(int setSize);
 void aeDeleteEventLoop(aeEventLoop *eventLoop);
 void aeStop(aeEventLoop *eventLoop);
@@ -45,7 +47,7 @@ int aeCreateFileEvent(aeEventLoop *eventLoop,int fd,int mask,aeFileProc proc,voi
 void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask);
 int aeGetFileEvent(aeEventLoop *eventLoop,int fd);
 int aeProcessEvents(aeEventLoop *eventLoop,int flags);
-int aeWait(int fd,int mask,long long milliseconds);
+//int aeWait(int fd,int mask,long long milliseconds); 暂时不实现定时器相关函数
 void aeMain(aeEventLoop *eventLoop);
 int aeGetSetSize(aeEventLoop *eventLoop);
 char* aeGetApiName();
