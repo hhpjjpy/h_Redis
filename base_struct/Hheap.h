@@ -16,10 +16,12 @@ typedef struct Heap
 	long size;
 }Heap;
 
-Heap* initHeap(heapType *type);
+Heap* CreateHeap(heapType *type);
 void* popHead(Heap *h); // where del  the node 
+void  delHead(Heap *h);
 void* getHead(Heap *h);
 int addHeapVal(Heap *h,void *val);
+int heapSize(Heap *h);
 int isEmpty(Heap *h);
 
 #endif

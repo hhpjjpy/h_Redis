@@ -3,7 +3,7 @@
 #include <malloc.h>
 #include <string.h>
 
-Heap* initHeap(heapType *type)
+Heap* CreateHeap(heapType *type)
 {
 	Heap *h = (Heap*)malloc(sizeof(Heap));
 	memset(h,0,sizeof(Heap));
@@ -19,23 +19,25 @@ error:
 	return NULL;
 }
 
-void ptrSwap(void **ptr1,void** ptr2){
+//交换指针里面的内容，要使用指针的指针。**
+void ptrSwap(void **ptr1,void **ptr2){ 
 	void *temp = (*ptr1);
 	*ptr1 = *ptr2;
 	*ptr2 = temp;
 	return;
 }
 
+
 void adjustUp(Heap *h,long i) //堆的上滤调整
 {
 	if (i == 0) return;
 
-	void *child = h->dataSpace[i];
+	void **child = &(h->dataSpace[i]); //交换对应数组位置中对应的指针，应该把数组位置作为参数纪录下来，而不是里面的值。 重要。下次注意！！！！！！！！！！！！！
 	long rootIndex = (i-1) / 2;
-	void *root = h->dataSpace[rootIndex];
+	void **root = &(h->dataSpace[rootIndex]);
 	
-	if (h->type->Campare(root,child) > 0)
-		ptrSwap(&child,&root);
+	if (h->type->Campare(*root,*child) > 0)
+		ptrSwap(child,root);
 	
 	if (rootIndex == 0) return;
 	
@@ -46,22 +48,24 @@ void adjustDown(Heap *h,long i) //以最小堆方式建立，NULL 无穷大
 {
 	if (i > h->size) return;
 
-	void *root = h->dataSpace[i];
+	void **root = &(h->dataSpace[i]);
 	long leftindex = 2 * i + 1;
 	long rightindex = 2 * i + 2;
-	if (leftindex > h->size) return;
+	if (leftindex >= h->size) return;
 
-	void *leftchild = h->dataSpace[leftindex];
-	void *rightchild = rightindex > h->size ? NULL : h->dataSpace[rightindex];
+	void **leftchild = &(h->dataSpace[leftindex]);
+	void **rightchild = rightindex >= h->size ? NULL :&(h->dataSpace[rightindex]);
 	
-	void *objchild = leftchild; 
+	void **objchild = leftchild; 
 	int  nextindex = leftindex;
 
-	if (rightchild != NULL && (h->type->Campare(leftchild, rightchild) > 0)){//如果右孩子更小，则为右孩子
+	if (rightchild != NULL && (h->type->Campare(*leftchild, *rightchild) > 0)){//如果右孩子更小，则为右孩子
 		objchild = rightchild;
 		nextindex = rightindex;
 	}
-	if (h->type->Campare(root, objchild) > 0)  ptrSwap(&root,objchild);
+	if (h->type->Campare(*root, *objchild) > 0)  ptrSwap(root, objchild);
+	else
+		return;
 
 	adjustDown(h,nextindex);
 }
@@ -71,11 +75,26 @@ void*  popHead(Heap *h)
 {
 	ptrSwap(&(h->dataSpace[0]), &(h->dataSpace[h->size - 1]));
 	void *val = h->dataSpace[h->size-1];
-	h->size--;
 	h->dataSpace[h->size - 1] = NULL;
+	
+	h->size--;
 	adjustDown(h,0);
 
 	return val;
+}
+
+void  delHead(Heap *h){
+	ptrSwap(&(h->dataSpace[0]), &(h->dataSpace[h->size - 1]));
+	void *val = h->dataSpace[h->size - 1];
+	h->dataSpace[h->size - 1] = NULL;
+	
+	h->size--;
+	adjustDown(h, 0);
+
+	if (h->type->valFree != NULL)
+		h->type->valFree(val);
+	else
+		free(val);
 }
 
 void* getHead(Heap *h)
@@ -92,9 +111,14 @@ int addHeapVal(Heap *h,void *val)
 	return 0;
 }
 
-int isEmpty(Heap *h)
+int heapSize(Heap *h)
 {
 	return h->size;
+}
+
+int isEmpty(Heap *h)
+{
+	return h->size == 0?1:0;
 }
 
 
