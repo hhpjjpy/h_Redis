@@ -23,5 +23,6 @@ void* getHead(Heap *h);
 int addHeapVal(Heap *h,void *val);
 int heapSize(Heap *h);
 int isEmpty(Heap *h);
+void freeHeap(Heap *h);
 
 #endif

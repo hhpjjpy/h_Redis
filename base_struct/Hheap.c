@@ -121,5 +121,12 @@ int isEmpty(Heap *h)
 	return h->size == 0?1:0;
 }
 
+void freeHeap(Heap *h)
+{
+	free(h->dataSpace);
+	free(h);
+	h = NULL;
+	return;
+}
 
 
