@@ -18,6 +18,49 @@ list* CreateList(void)
 	return l;
 }
 
+void* listGetFrist(list *list)
+{
+	if (list->m_head == NULL) return NULL;
+	return list->m_head->m_value;
+}
+
+void* listGetLast(list *list)
+{
+	if (list->m_tail == NULL) return NULL;
+	return list->m_tail->m_value;
+}
+
+void listFreeFrist(list *list)
+{
+	if (list->m_head == NULL) return;
+	listNode *temp = list->m_head;
+	list->m_head = list->m_head->m_next;
+	if (list->m_head!=NULL)
+		list->m_head->m_prev = NULL;
+	if (list->free == NULL)
+		free(temp->m_value);
+	else
+		list->free(temp->m_value);
+	free(temp);
+
+	list->length--;
+}
+
+void listFreeLast(list *list){
+	if (list->m_tail == NULL) return;
+	listNode *temp = list->m_tail;
+	list->m_tail = list->m_tail->m_prev;
+	if (list->m_tail != NULL)
+		list->m_tail->m_next = NULL;
+	if (list->free == NULL)
+		free(temp->m_value);
+	else
+		list->free(temp->m_value);
+	free(temp);
+
+	list->length--;
+}
+
 list* listAddNodeHead(list *list, void *value)
 {
 	listNode *node;

@@ -27,8 +27,7 @@ void ptrSwap(void **ptr1,void **ptr2){
 	return;
 }
 
-
-void adjustUp(Heap *h,long i) //堆的上滤调整
+void adjustUp(Heap *h,long i) //堆的上滤调整 
 {
 	if (i == 0) return;
 
@@ -36,8 +35,10 @@ void adjustUp(Heap *h,long i) //堆的上滤调整
 	long rootIndex = (i-1) / 2;
 	void **root = &(h->dataSpace[rootIndex]);
 	
-	if (h->type->Campare(*root,*child) > 0)
-		ptrSwap(child,root);
+	if (h->type->Campare(*root, *child) > 0)
+		ptrSwap(child, root);
+	else
+		return;
 	
 	if (rootIndex == 0) return;
 	
@@ -46,7 +47,7 @@ void adjustUp(Heap *h,long i) //堆的上滤调整
 
 void adjustDown(Heap *h,long i) //以最小堆方式建立，NULL 无穷大
 {
-	if (i > h->size) return;
+	if (i >= h->size) return;
 
 	void **root = &(h->dataSpace[i]);
 	long leftindex = 2 * i + 1;
@@ -73,6 +74,8 @@ void adjustDown(Heap *h,long i) //以最小堆方式建立，NULL 无穷大
 
 void*  popHead(Heap *h)
 {
+	if (h->size == 0) return NULL;
+
 	ptrSwap(&(h->dataSpace[0]), &(h->dataSpace[h->size - 1]));
 	void *val = h->dataSpace[h->size-1];
 	h->dataSpace[h->size - 1] = NULL;
@@ -84,6 +87,7 @@ void*  popHead(Heap *h)
 }
 
 void  delHead(Heap *h){
+	if (h->size == 0) return;
 	ptrSwap(&(h->dataSpace[0]), &(h->dataSpace[h->size - 1]));
 	void *val = h->dataSpace[h->size - 1];
 	h->dataSpace[h->size - 1] = NULL;
@@ -97,9 +101,37 @@ void  delHead(Heap *h){
 		free(val);
 }
 
+int  delMatch(Heap *h, void *data)
+{
+	if (h->size == 0) return -1;
+	if (h->type->matchVal == NULL) return -2;
+	int size = h->size;
+	while (size){
+		if (h->type->matchVal(h->dataSpace[size-1], data))
+			break;
+		size--;
+	}
+	if (size == 0)
+		return -1;
+
+	ptrSwap(&(h->dataSpace[size-1]), &(h->dataSpace[h->size - 1]));
+	void *val = h->dataSpace[h->size - 1];
+	h->dataSpace[h->size - 1] = NULL;
+
+	h->size--;
+	adjustDown(h, 0);
+
+	if (h->type->valFree != NULL)
+		h->type->valFree(val);
+	else
+		free(val);
+	return 0;
+}
+
+
 void* getHead(Heap *h)
 {
-	return h->dataSpace[0];
+	return h->size==0?NULL:h->dataSpace[0];
 }
 
 int addHeapVal(Heap *h,void *val)
@@ -116,7 +148,7 @@ int heapSize(Heap *h)
 	return h->size;
 }
 
-int isEmpty(Heap *h)
+int isEmptyHeap(Heap *h)
 {
 	return h->size == 0?1:0;
 }

@@ -1,11 +1,33 @@
 #include "ae.h"
 #include <malloc.h>
 #include <memory.h>
+#include <sys/time.h>
 
 #ifndef APPLE_OS
 	#include "ae_epoll.c"
 #else
 #endif
+
+/*
+时间堆类型相关函数
+*/
+int timeCompare(void *val1,void *val2)
+{
+	aeTimeEvent *tev1 = (aeTimeEvent*)val1;
+	aeTimeEvent *tev2 = (aeTimeEvent*)val2;
+	
+	return (tev1->when.tv_sec * 1000 + tev1->when.tv_usec / 1000) - (tev2->when.tv_sec * 1000 + tev2->when.tv_usec / 1000);
+}
+
+int timeEventMatch(void *heapnode,void *data)
+{
+	long long *timeid = (long long*)data;
+	aeTimeEvent *tev = (aeTimeEvent*)heapnode;
+
+	return tev->timeId == *timeid;
+}
+
+
 
 aeEventLoop* aeCreateEventLoop(int setSize)
 {
@@ -20,6 +42,12 @@ aeEventLoop* aeCreateEventLoop(int setSize)
 	memset(ae->fired,0,setSize*sizeof(aeFiledEvent));
 	if (ae->fired == NULL) goto error;
 	ae->stop = 1;
+	ae->timeIdMax = 0;
+	heapType *htype = (heapType*)malloc(sizeof(heapType));
+	htype->Campare = timeCompare;
+	htype->matchVal = timeEventMatch;
+	htype->valFree = NULL;
+	ae->timeEvents = CreateHeap(htype);
 	aeApiCreate(ae);
 
 	return ae;
@@ -69,15 +97,82 @@ void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask)
 	fileevent->mask &= ~mask;
 }
 
-int aeGetFilevent(aeEventLoop *eventLoop,int fd)
+int aeGetFileEvent(aeEventLoop *eventLoop, int fd)
 {
 	return eventLoop->events[fd].mask;
 }
 
+long long aeCreateTimeEvent(aeEventLoop *eventloop, aeTimeProc proc, long howlong, int interval,void *clientdata)
+{
+	struct timeval  tval;
+	gettimeofday(&tval,NULL);
+	tval.tv_sec += howlong / 1000;
+	tval.tv_usec += (howlong % 1000) * 1000;
+
+	aeTimeEvent *aeTev = (aeTimeEvent*)malloc(sizeof(aeTimeEvent));
+	aeTev->timeId = ++(eventloop->timeIdMax);
+	aeTev->interval = interval;
+	aeTev->intervaltime.tv_sec = howlong / 1000;
+	aeTev->intervaltime.tv_usec = (howlong % 1000) * 1000;
+	aeTev->when = tval;
+	aeTev->timeProc = proc;
+	aeTev->clientData = clientdata;
+	aeTimeEvent *oldHead = getHead(eventloop->timeEvents);
+	if (addHeapVal(eventloop->timeEvents, aeTev) != 0)
+		return -1;
+	return aeTev->timeId;
+}
+
+int aeDelTimeEvent(aeEventLoop *eventloop, long long timeId)
+{
+	return delMatch(eventloop->timeEvents, &timeId);
+
+}
+
+struct timeval* getTimeVal(aeEventLoop *eventLoop)
+{
+	aeTimeEvent *ae = (aeTimeEvent*)getHead(eventLoop->timeEvents);
+	if (ae == NULL) return NULL;
+	static struct timeval  pooltvl;
+	gettimeofday(&pooltvl, NULL);
+ 	
+	long sec = ae->when.tv_sec - pooltvl.tv_sec;
+	pooltvl.tv_sec = sec > 0 ? sec : 0;
+	long usec = ae->when.tv_usec - pooltvl.tv_usec;
+	pooltvl.tv_usec = usec > 0 ? usec : 0;
+	return &pooltvl;
+}
+
+int compareTimeVal(struct timeval *tv1,struct timeval *tv2)
+{
+	return (tv1->tv_sec * 1000 + tv1->tv_usec / 1000) - (tv2->tv_sec * 1000 + tv2->tv_usec / 1000);
+}
+
+void RunNowReadyTimeEvent(aeEventLoop *eventloop)
+{
+	struct timeval tvl;
+	gettimeofday(&tvl, NULL);
+	while (!isEmptyHeap(eventloop->timeEvents)){
+		aeTimeEvent *aeTev = getHead(eventloop->timeEvents);
+		if (compareTimeVal(&tvl, &(aeTev->when)) < 0) break;
+		if (aeTev->timeProc!=NULL)
+			aeTev->timeProc(eventloop,aeTev->timeId,aeTev->clientData);
+		if (aeTev->interval >0){
+			popHead(eventloop->timeEvents);
+			aeTev->when.tv_sec = tvl.tv_sec + aeTev->intervaltime.tv_sec;
+			aeTev->when.tv_usec = tvl.tv_usec + aeTev->intervaltime.tv_usec;
+			addHeapVal(eventloop->timeEvents,aeTev);
+		}
+		else
+			delHead(eventloop->timeEvents);
+	}
+}
+
 int aeProcessEvents(aeEventLoop *eventLoop,int flags)
 {
-	int interval = -1; 
-	int readyNum = aeApiPoll(eventLoop,interval);
+	struct timeval *p = getTimeVal(eventLoop);
+
+	int readyNum = aeApiPoll(eventLoop,p);
 	if (readyNum ==-1 ) return -1;
 	for (int i = 0; i < readyNum; i++){
 		aeFileEvent *fileEvent = &(eventLoop->events[eventLoop->fired[i].fd]);
@@ -89,6 +184,8 @@ int aeProcessEvents(aeEventLoop *eventLoop,int flags)
 				fileEvent->wfileProc(eventLoop, eventLoop->fired[i].fd, fileEvent->clientData, eventLoop->fired[i].mask);
 	}
 	memset(eventLoop->fired,0,eventLoop->setSize*sizeof(aeFiledEvent));//处理完之后及时清理
+
+	RunNowReadyTimeEvent(eventLoop);
 
 	return readyNum;
 }

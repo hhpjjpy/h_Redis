@@ -69,8 +69,6 @@ void clientRead(aeEventLoop *ae,int fd,void *clientdata,int mask)
 {
 	clientData *client = (clientData*)clientdata;
 
-	client->ae = ae;
-
 	int count = 0;
 	if ((count = netRead(fd, client->readbuf, 256)) <= 0){
 		FreeClient(client);
@@ -83,6 +81,42 @@ void clientRead(aeEventLoop *ae,int fd,void *clientdata,int mask)
 
 	processBuff(client);
 }
+
+void setTimeProc(aeEventLoop *eventloop, long long id, void *clientDate)
+{
+	clientData *client = (clientData*)clientDate;
+	strcpy(client->writebuf, "timeProc test run 001 \n");
+	aeCreateFileEvent(client->ae, client->fd, AE_WRITE, &clientWrite, client);
+}
+
+void setTimeProc002(aeEventLoop *eventloop, long long id, void *clientDate)
+{
+	clientData *client = (clientData*)clientDate;
+	strcpy(client->writebuf, "timeProc test run 002 \n");
+	aeCreateFileEvent(client->ae, client->fd, AE_WRITE, &clientWrite, client);
+}
+
+void setTimeProc003(aeEventLoop *eventloop, long long id, void *clientDate)
+{
+	clientData *client = (clientData*)clientDate;
+	strcpy(client->writebuf, "timeProc test run 003 \n");
+	aeCreateFileEvent(client->ae, client->fd, AE_WRITE, &clientWrite, client);
+}
+
+void setTimeProc004(aeEventLoop *eventloop, long long id, void *clientDate)
+{
+	clientData *client = (clientData*)clientDate;
+	strcpy(client->writebuf, "timeProc test run 004 \n");
+	aeCreateFileEvent(client->ae, client->fd, AE_WRITE, &clientWrite, client);
+}
+
+void setTimeProc005(aeEventLoop *eventloop, long long id, void *clientDate)
+{
+	clientData *client = (clientData*)clientDate;
+	strcpy(client->writebuf, "timeProc test run 005 \n");
+	aeCreateFileEvent(client->ae, client->fd, AE_WRITE, &clientWrite, client);
+}
+
 
 void AcceptConnect(aeEventLoop *ae,int fd,void *clientDate,int mask)
 {
@@ -98,7 +132,13 @@ void AcceptConnect(aeEventLoop *ae,int fd,void *clientDate,int mask)
 	printf("clien ip : %s  port: %d \n",ip,port);
 	
 	data->fd = clifd;
-	aeCreateFileEvent(ae, clifd, AE_READ, &clientRead, (void*)data);	
+	data->ae = ae;
+	aeCreateFileEvent(ae, clifd, AE_READ, &clientRead, (void*)data);
+	aeCreateTimeEvent(ae, &setTimeProc, 5000, 1, (void*)data);
+	aeCreateTimeEvent(ae, &setTimeProc002, 7000, 1, (void*)data);
+	aeCreateTimeEvent(ae, &setTimeProc003, 13000, 1, (void*)data);
+	aeCreateTimeEvent(ae, &setTimeProc004, 17000, 0, (void*)data);
+	aeCreateTimeEvent(ae, &setTimeProc005, 23000, 1, (void*)data);	
 }
 
 

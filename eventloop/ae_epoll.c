@@ -72,11 +72,11 @@ static int aeApiDelEvent(aeEventLoop *eventLoop,int fd,int delmask)
 	return 0;
 }
 
-static int aeApiPoll(aeEventLoop *eventLoop, int timeout)
+static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp)
 {
 	aeApiState *state = (aeApiState*)eventLoop->apidata;
 	int readyNum = 0;
-	if ((readyNum = epoll_wait(state->epfd, state->enents, eventLoop->setSize, timeout)) == -1) return -1;
+	if ((readyNum = epoll_wait(state->epfd, state->enents, eventLoop->setSize, tvp ? (tvp->tv_sec * 1000 + tvp->tv_usec / 1000) : -1)) == -1) return -1;
 	for (int i = 0; i < readyNum; i++){
 		struct epoll_event ev = state->enents[i];
 		int mask = AE_NONE;

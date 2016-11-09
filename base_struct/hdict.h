@@ -47,4 +47,9 @@ int dictRehash(dict *d,int n);
 int dictRehashMilliseconeds(dict *d,int ms);
 void dictFree(dict *d);
 
+//hash function
+void dictSetHashFunctionSeed(unsigned int initval);
+unsigned int dictGenHashFunction(const void *key, int len);
+unsigned int dictGenCaseHashFunction(const unsigned char *buf, int len);
+
 #endif

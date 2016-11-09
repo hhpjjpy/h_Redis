@@ -25,6 +25,10 @@ typedef struct list
 #define ListLength(l) ((l)->length)
 
 list* CreateList(void);
+void* listGetFrist(list *list);
+void* listGetLast(list *list);
+void listFreeFrist(list *list);
+void listFreeLast(list *list);
 list* listAddNodeHead(list *list, void *value);
 list* listAddNodeTail(list *list,void *value);
 list* listInsertNode(list *list, listNode *oldNode, void *value, int direction);

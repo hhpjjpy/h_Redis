@@ -322,8 +322,6 @@ int main()
 			printf("Test exit \n");
 			return -1;
 		}
-			
-
 
 		eatPar(TestDict,par);
 
