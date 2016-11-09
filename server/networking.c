@@ -22,14 +22,15 @@ redisClient* createClient(int fd)
 	netNonBlock(NULL,fd);
 	c->id = ++idcount;
 	c->fd = fd;
+	c->db = oredisServer.db;
 	c->queryBuf = sdsempty();
 	c->comd = NULL;
 	c->queryBuf_peak = 0;
 	c->queryType = -1;
 	c->argc = 0;
 	c->argv = NULL;
-	c->multibulklen = -1;
-	c->bulklen = -1;
+	c->multibulklen = 0;
+	c->bulklen = 0;
 	c->reply = CreateList();
 	c->reply->free = RedisObjFree;
 	c->reply_bytes = 0;
@@ -46,6 +47,7 @@ void freeClient(redisClient *c)
 	listNode *node = listSerchNode(oredisServer.clients, c);
 	if (node != NULL)
 		listRemoveNode(oredisServer.clients,node);
+	aeDeleteFileEvent(oredisServer.ae,c->fd,AE_READ|AE_WRITE);
 	close(c->fd);
 	free(c->argv);
 	FreeList(c->reply);
@@ -61,10 +63,8 @@ void resetClient(redisClient *c)
 	c->queryType = -1;
 	c->queryBuf_peak = 0;
 	c->queryBuf = sdsempty();
-	c->multibulklen = -1;
-	c->bulklen = -1;
-	c->sendlen = 0;
-	c->bufpos = 0;
+	c->multibulklen = 0;
+	c->bulklen = 0;
 }
 
 void sendReplyToClient(aeEventLoop *ae,int fd,void *privdata,int mask)
@@ -171,7 +171,7 @@ void addReplyLenHead(redisClient *c, int ll, char prefix)
 	len = ll2string(buf + 1, sizeof(buf)-1, ll);
 	buf[len + 1] = '\r';
 	buf[len + 2] = '\n';
-	addReplyBulkCBuffer(c, buf, len);
+	addReplyBulkCBuffer(c, buf, len+3);
 }
 
 void addReplyLen(redisClient *c,robj *obj)
@@ -322,7 +322,7 @@ int processMultibulkBuffer(redisClient *c)
 		if (newline == NULL) {
 			if (sdslen(c->queryBuf) > REDIS_INLINE_MAX_SIZE) {
 				addReplyError(c, "Protocol error: too big mbulk count string");
-				sdsrange(c->queryBuf,0, -1);
+				resetClient(c);
 			}
 			return SERVER_ERR;
 		}
@@ -334,13 +334,14 @@ int processMultibulkBuffer(redisClient *c)
 		ok = string2ll(c->queryBuf + 1, newline - (c->queryBuf + 1), &ll);
 		if (!ok || ll > 1024 * 1024) {
 			addReplyError(c, "Protocol error: invalid multibulk length");
-			sdsrange(c->queryBuf, pos, -1);
+			resetClient(c);
 			return SERVER_ERR;
 		}
 
 		pos = (newline - c->queryBuf) + 2;
 		if (ll <= 0) {
 			sdsrange(c->queryBuf, pos, -1);
+			resetClient(c);
 			return SERVER_OK;
 		}
 
@@ -353,13 +354,13 @@ int processMultibulkBuffer(redisClient *c)
 
 	while (c->multibulklen) {
 		/* Read bulk length if unknown */
-		if (c->bulklen == -1) {
+		if (c->bulklen == 0) {
 			newline = strchr(c->queryBuf + pos, '\r');
 			if (newline == NULL) {
 				if (sdslen(c->queryBuf) > REDIS_INLINE_MAX_SIZE) {
 					addReplyError(c,
 						"Protocol error: too big bulk count string");
-					sdsrange(c->queryBuf, 0, -1);
+					resetClient(c);
 					return SERVER_ERR;
 				}
 				break;
@@ -373,14 +374,14 @@ int processMultibulkBuffer(redisClient *c)
 				addReplyErrorFormat(c,
 					"Protocol error: expected '$', got '%c'",
 					c->queryBuf[pos]);
-				sdsrange(c->queryBuf, pos, -1);
+				resetClient(c);
 				return SERVER_ERR;
 			}
 
 			ok = string2ll(c->queryBuf + pos + 1, newline - (c->queryBuf + pos + 1), &ll);
 			if (!ok || ll < 0 || ll > 512 * 1024 * 1024) {
 				addReplyError(c, "Protocol error: invalid bulk length");
-				sdsrange(c->queryBuf, pos, -1);
+				resetClient(c);
 				return SERVER_ERR;
 			}
 
@@ -416,7 +417,7 @@ int processMultibulkBuffer(redisClient *c)
 				c->bulklen >= REDIS_MBULK_BIG_ARG &&
 				(signed)sdslen(c->queryBuf) == c->bulklen + 2)
 			{
-				c->argv[c->argc++] = CreateSdsObj(c->queryBuf);
+				c->argv[c->argc++] = CreateSdsObj(sdsnewlen(c->queryBuf + pos, c->bulklen));
 				sdsIncrLen(c->queryBuf, -2); /* remove CRLF */
 				c->queryBuf = sdsempty();
 				/* Assume that if we saw a fat argument we'll see another one
@@ -426,10 +427,11 @@ int processMultibulkBuffer(redisClient *c)
 			}
 			else {
 				c->argv[c->argc++] =
-					CreateSdsObj(c->queryBuf + pos);
+					CreateSdsObj(sdsnewlen(c->queryBuf + pos, c->bulklen));
+
 				pos += c->bulklen + 2;
 			}
-			c->bulklen = -1;
+			c->bulklen = 0;
 			c->multibulklen--;
 		}
 	}
@@ -458,10 +460,10 @@ void processInputBuffer(redisClient *c)
 		}
 
 		if (c->queryType == REDIS_REQ_INL){
-			if (processInlineBuffer(c) != SERVER_OK) break;
+			if (processInlineBuffer(c) == SERVER_ERR) break;
 		}
 		else if (c->queryType == REDIS_REQ_MUL){
-			if (processMultibulkBuffer(c) != SERVER_ERR) break;
+			if (processMultibulkBuffer(c) == SERVER_ERR) break;
 		}
 		else{
 			addReplyError(c,"is unknow request type");

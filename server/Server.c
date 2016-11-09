@@ -43,15 +43,25 @@ void setCommand(redisClient *c)
 }
 void delCommand(redisClient *c)
 {
-	addReplyError(c, "now is not realize this commd, place wait ... ");
+	addReplyError(c, " now is not realize this commd, place wait ... ");
 }
 void existsCommand(redisClient *c)
 {
-	addReplyError(c, "now is not realize this commd, place wait ... ");
+	addReplyError(c, " now is not realize this commd, place wait ... ");
 }
 void getCommand(redisClient *c)
 {
-	addReplyError(c, "now is not realize this commd, place wait ... ");
+	if (c->argc != 2){
+		addReplyError(c, " invalid  parameter ");
+		return;
+	}
+	robj *obj = lookupkey(c->db,c->argv[1]);
+	if (obj == NULL){
+		addReplyError(c, " not have this key ");
+	}
+	else{
+		addReplyfull(c,obj);
+	}
 }
 void hsetCommand(redisClient *c)
 {
@@ -83,9 +93,22 @@ void hlenCommand(redisClient *c)
 robj* CreateSdsObj(sds s)
 {
 	robj *obj = (robj*)malloc(sizeof(obj));
-	obj->ptr = s;
 	obj->refcount = 1;
 	obj->type = 1;
+	obj->ptr = s;
+
+	return obj;
+}
+
+robj* CreateSdsObjLen(sds s, size_t len)
+{
+	robj *obj = (robj*)malloc(sizeof(obj));
+	obj->refcount = 1;
+	obj->type = 1;
+	obj->ptr = malloc(sizeof(char)*len + 1);
+	memcpy(obj->ptr, s, len);
+	char *buf = obj->ptr;
+	buf[len] = '\n';
 
 	return obj;
 }
@@ -122,8 +145,8 @@ int dictSdsKeyCompare( void *key1, void *key2)
 
 	l1 = sdslen((sds)key1);
 	l2 = sdslen((sds)key2);
-	if (l1 != l2) return 0;
-	return memcmp(key1, key2, l1) == 0;
+	if (l1 != l2) return l1 - l2;
+	return memcmp(key1, key2, l1);
 }
 
 void dictSdsFree(void *val)
@@ -149,8 +172,8 @@ int dictSdsObjKeyCompare(void *key1, void *key2)
 
 	l1 = sdslen((sds)realKey1);
 	l2 = sdslen((sds)realKey2);
-	if (l1 != l2) return 0;
-	return memcmp(realKey1, realKey2, l1) == 0;
+	if (l1 != l2) return l1 - l2;
+	return memcmp(realKey1, realKey2, l1);
 }
 
 void dictSdsObjFree(void *val)
@@ -204,6 +227,14 @@ redisDb* CreateRedisDb()
 
 redisServer  oredisServer;
 
+int clientMatch(void *client1,void *client2)
+{
+	redisClient *c1 = (redisClient*)client1;
+	redisClient *c2 = (redisClient*)client2;
+
+	return c1->id - c2->id;
+}
+
 void initServer(redisServer *s)
 {
 	s->pid = getpid();
@@ -213,6 +244,7 @@ void initServer(redisServer *s)
 	s->ip = SERVER_IP;
 	s->port = SERVER_PORT;
 	s->clients = CreateList();
+	ListMatchFunSet(s->clients,clientMatch);
 	s->listenfd = netTcpServer(NULL,s->port,s->ip,1000);
 	
 	aeCreateFileEvent(s->ae,s->listenfd,AE_READ,acceptTcpHandler,NULL);
@@ -229,11 +261,11 @@ int processCommand(redisClient *c)
 	c->comd = lookupCommandSds(c->argv[0]->ptr);
 	if (c->comd == NULL){
 		addReplyError(c,"unknow commd ");
-		return -1;
+		return 0;
 	}
-	if ((c->comd->arity>0 && ( c->comd->arity != c->argc)||c->comd->arity < -c->argc)){
-		addReplyError(c,"parameter number is error");
-		return  -1;
+	if ((c->comd->arity>0 && c->comd->arity > c->argc)||c->comd->arity < -c->argc ){
+		addReplyError(c," parameter number is error");
+		return  0;
 	}
 
 	call(c, 0);

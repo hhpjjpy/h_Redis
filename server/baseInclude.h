@@ -5,4 +5,4 @@
 #include "../eventloop/ae.h"
 #include "../base_struct/sds.h"
 #include "../redis_src/util.h"
-#include "../redis_src/sha1.h"
+//#include "../redis_src/sha1.h"

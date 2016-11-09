@@ -13,6 +13,9 @@ int expireIfNeeded(redisDb *db, robj *key)
 	long long now = tvl.tv_sec * 1000 + tvl.tv_usec / 1000;
 	long long when = getExpire(db,key);
 
+	if (when == 0)
+		return 0;//为设置
+
 	if (now > when){
 		removeExpire(db, key);
 		return -1; //表示已到过期时间
@@ -52,6 +55,7 @@ void dbAdd(redisDb *db, robj *key, robj *val)
 }
 void dbOverwrite(redisDb *db, robj *key, robj *val)
 {
+
 	dictReplace(db->dicts, key, val);
 }
 

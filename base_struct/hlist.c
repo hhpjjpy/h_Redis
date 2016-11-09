@@ -173,23 +173,24 @@ listNode* listSerchNode(list *list, void *key)
 
 void listRemoveNode(list *list,listNode *node)
 {
-	if (!node->m_next){
+	if (!node->m_next&&node->m_prev!=NULL){
 		node->m_prev->m_next = NULL;
 		list->m_tail = node->m_prev;
 	}
-	else if(!node->m_prev){
+	else if(!node->m_prev&&node->m_next!=NULL){
 		node->m_next->m_prev = NULL;
 		list->m_head = node->m_next;
 	}
-	else{
+	else if (node->m_prev!=NULL&&node->m_next != NULL){
 		node->m_next->m_prev = node->m_prev;
 		node->m_prev->m_next = node->m_next;
 	}
-
+	else{
+		list->m_head = NULL;
+		list->m_tail = NULL;
+	}
 	if (list->free)
 		list->free(node->m_value);
-	else
-		free(node->m_value);
 	free(node);
 	list->length--;
 }

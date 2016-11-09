@@ -125,6 +125,7 @@ void hlenCommand(redisClient *c);
 
 //redis obj function
 robj* CreateSdsObj(sds s);
+robj* CreateSdsObjLen(sds s,size_t len);
 robj* CreateDictObj(dict *d);
 void FreeSdsObj(robj *o);
 void FreeDictObj(robj *o);
