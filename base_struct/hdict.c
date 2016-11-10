@@ -210,6 +210,7 @@ int dictReplace(dict *d,void *key,void *val)
 {
 	dictEntry *p = dictFind(d,key);
 	if (!p)  return dictAdd(d,key,val);
+	if (d->type->valFree) dictValFree(d,p->val);
 	p->val = val;
 	return DICT_OK;
 }
@@ -231,8 +232,8 @@ int dictDelete(dict *d,const void *key)
 				if (pre) pre->next = p->next;
 				else  ht_ptr->table[index] = NULL;
 	
-				dictKeyFree(d, key);
-				dictValFree(d, p->val);
+				if (d->type->keyFree) dictKeyFree(d,p->key);
+				if (d->type->valFree) dictValFree(d, p->val);
 				free(p);
 
 				ht_ptr->used--;

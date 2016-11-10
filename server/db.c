@@ -4,7 +4,12 @@
 
 int removeExpire(redisDb *db, robj *key) //key is sds
 {
-	return dictDelete(db->expires, (sds)key->ptr) && dictDelete(db->dicts,key);
+	int ret1 = dictDelete(db->expires, (sds)key->ptr);
+	int ret2 = dictDelete(db->dicts, key);
+
+	if (ret1 == 0 && ret2 == 0)
+		return 0;
+	return -1;
 }
 int expireIfNeeded(redisDb *db, robj *key)
 {

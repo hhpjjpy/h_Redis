@@ -28,7 +28,16 @@ redisCommand  commd[] = {
 void setCommand(redisClient *c)
 {
 	if (c->argc >= 3){
-		dbOverwrite(c->db, c->argv[1], c->argv[2]);
+		robj *obj = lookupkey(c->db, c->argv[1]);
+		if (obj == NULL){
+			dbAdd(c->db, c->argv[1], c->argv[2]);
+			c->argv[1]->refcount++;
+			c->argv[2]->refcount++;
+		}
+		else{
+			dbOverwrite(c->db,c->argv[1],c->argv[2]);
+			c->argv[2]->refcount++;
+		}
 	}
 	else
 		addReplyError(c,"invalid  parameter ");
@@ -38,6 +47,7 @@ void setCommand(redisClient *c)
 		robj *obj = c->argv[3];
 		int ok = string2ll((const char*)obj->ptr,sdslen(obj->ptr),&ll);
 		setExpire(c->db,c->argv[1],ll);
+		c->argv[1]->refcount++;
 	}
 	addReplyOK(c);
 }
@@ -62,6 +72,7 @@ void getCommand(redisClient *c)
 	else{
 		addReplyfull(c,obj);
 	}
+	
 }
 void hsetCommand(redisClient *c)
 {
@@ -125,14 +136,22 @@ robj* CreateDictObj(dict *d)
 
 void FreeSdsObj(robj *o)
 {
-	free(o->ptr);
+	o->refcount--;
+	if (o->refcount != 0) return;
+	sdsfree(o->ptr);
 	free(o);
 }
 
 void FreeDictObj(robj *o)
 {
+	o->refcount--;
+	if (o->refcount != 0) return;
 	dictFree((dict*)o->ptr);
 	free(o);
+}
+void FreeLL(void *ll)
+{
+	free(ll);
 }
 
 unsigned int dictSdsHash(const void *key) {
@@ -179,6 +198,8 @@ int dictSdsObjKeyCompare(void *key1, void *key2)
 void dictSdsObjFree(void *val)
 {
 	robj *obj = (robj*)val;
+	obj->refcount--;
+	if (obj->refcount != 0) return;
 	sdsfree(obj->ptr);
 	free(obj);
 }
@@ -204,7 +225,7 @@ dictType dbDictType = {
 	NULL,
 	NULL,
 	dictSdsObjKeyCompare,
-	dictSdsObjFree,
+	dictSdsFree,
 	RedisObjFree
 };
 
@@ -215,7 +236,7 @@ dictType exDictType = {
 	NULL,
 	dictSdsKeyCompare,
 	dictSdsFree,
-	NULL
+	FreeLL
 };
 
 redisDb* CreateRedisDb()

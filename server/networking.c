@@ -56,6 +56,9 @@ void freeClient(redisClient *c)
 
 void resetClient(redisClient *c)
 {
+	for (int i = 0; i < c->argc; i++){
+		if (c->argv[i] != NULL) FreeSdsObj(c->argv[i]);
+	}
 	c->argc = 0;
 	if (c->argv != NULL) free(c->argv);
 	c->argv = NULL;
