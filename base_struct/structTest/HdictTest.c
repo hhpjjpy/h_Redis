@@ -117,6 +117,18 @@ void DealRehash(dict *d,parArg *ptr)
 	printf("rehash ok \n");
 }
 
+void RandEntry(dict *d,parArg *ptr)
+{
+	dictEntry *entry = dictRandomEntry(d);
+	if (entry == NULL){
+		printf(" is NULL \n");
+		return; 
+	}
+	hstring *hskey = (hstring*)entry->key;
+	hstring *hsval = (hstring*)entry->val;
+	printf("key: %s     val: %s\n", hskey->ptr, hsval->ptr);
+}
+
 void shwoInfo(dict *d,parArg *ptr)
 {
 	int used = d->ht[0].used + d->ht[1].used;
@@ -230,6 +242,10 @@ void  getParameter(parArg *par)
 		par->number = 1;
 		return ;
 	}
+	else if (strcmp(agr1, "randEntry") == 0){
+		par->number = 1;
+		return;
+	}
 	else if (strcmp(agr1, "exit") == 0){
 		par->number = 1;
 		return ;
@@ -254,7 +270,8 @@ dictCmd  TestCmd[] =
 	{ "get", getCmdFun },
 	{ "replace", replaceCmdFun },
 	{ "rehash", DealRehash },
-	{ "info", shwoInfo }
+	{ "info", shwoInfo },
+	{ "randEntry", RandEntry}
 };
 
 
@@ -288,6 +305,7 @@ void printfHelp()
 	printf("replace key value \n");
 	printf("rehash \n");
 	printf("info \n");
+	printf("randEntry \n");
 	printf("exit \n");
 	printf("**********************************************************\n");
 }

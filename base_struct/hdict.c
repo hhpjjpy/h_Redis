@@ -87,8 +87,6 @@ unsigned int dictGenCaseHashFunction(const unsigned char *buf, int len) {
 
 ////////////////////////////////////////////////////////////////////////////
 
-
-
 static void initDictht(dictht *ht)
 {
 	ht->table = NULL;
@@ -205,6 +203,37 @@ dictEntry* dictFind(dict *d, const void *key)//key有可能存在于2个空间�
 	return NULL;
 }
 
+dictEntry* dictRandomEntry(dict *d)
+{
+	if (d->rehashidx == -1){
+		if (d->ht[0].used == 0) return NULL;
+
+		long randomIndex = rand() % (d->ht[0].size);
+		long times = 0;
+		while (d->ht[0].table[randomIndex] == NULL){
+			randomIndex = rand() % (d->ht[0].size);
+			times++;
+			if (times >= 100) return NULL;
+		}
+		return d->ht[0].table[randomIndex];
+	}
+	else{
+		int htIndex = rand() % 2;
+		if (d->ht[htIndex].used == 0)
+			htIndex = htIndex==0?1:0;
+
+		if (d->ht[htIndex].used == 0) return NULL;
+
+		long randomIndex = rand() % (d->ht[htIndex].size);
+		long times = 0;
+		while (d->ht[htIndex].table[randomIndex] == NULL){
+			randomIndex = rand() % (d->ht[htIndex].size);
+			times++;
+			if (times >= 100) return NULL;
+		}
+		return d->ht[htIndex].table[randomIndex];
+	}
+}
 
 int dictReplace(dict *d,void *key,void *val)
 {

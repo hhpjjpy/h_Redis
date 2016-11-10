@@ -39,6 +39,7 @@ dict *dictCreate(dictType *type);
 int dictExpand(dict *d, unsigned long size);
 int dictAdd(dict *d,void *key,void *val);
 dictEntry* dictFind(dict *d, const void *key);
+dictEntry* dictRandomEntry(dict *d);
 int dictReplace(dict *d,void *key,void *val);
 int dictDelete(dict *d,const void *key);
 void* dictFetchValue(dict *d,const void *key);

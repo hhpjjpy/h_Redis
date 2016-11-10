@@ -239,6 +239,23 @@ dictType exDictType = {
 	FreeLL
 };
 
+redisServer  oredisServer;
+
+
+//服务端定时任务，现在只处理定时删除过期的key.
+void serverCron(aeEventLoop *ae,long long id ,void *clientData)
+{ 
+	int times = 1000;
+	while (times--){
+		dictEntry *entry = dictRandomEntry(oredisServer.db->expires);
+		if (entry == NULL)  continue;
+
+		robj *objkey = CreateSdsObj(sdsdup((sds)entry->key));
+		expireIfNeeded(oredisServer.db,objkey);
+		FreeSdsObj(objkey);
+ 	}
+}
+
 redisDb* CreateRedisDb()
 {
 	redisDb *db = (redisDb*)malloc(sizeof(redisDb));
@@ -246,7 +263,7 @@ redisDb* CreateRedisDb()
 	db->expires = dictCreate(&exDictType);
 }
 
-redisServer  oredisServer;
+
 
 int clientMatch(void *client1,void *client2)
 {
@@ -255,6 +272,7 @@ int clientMatch(void *client1,void *client2)
 
 	return c1->id - c2->id;
 }
+
 
 void initServer(redisServer *s)
 {
@@ -269,6 +287,8 @@ void initServer(redisServer *s)
 	s->listenfd = netTcpServer(NULL,s->port,s->ip,1000);
 	
 	aeCreateFileEvent(s->ae,s->listenfd,AE_READ,acceptTcpHandler,NULL);
+	aeCreateTimeEvent(s->ae,serverCron,1000,1,NULL);
+
 }
 
 //core funciton 
@@ -345,6 +365,8 @@ void goDaemon()
 int main()
 {
 	PirntVersion();
+
+	goDaemon();
 
 	initServer(&oredisServer);
 

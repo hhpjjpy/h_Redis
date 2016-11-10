@@ -16,7 +16,7 @@
 struct aeEventLoop;
 
 typedef void(*aeFileProc)(struct aeEventLoop *eventloop, int fd, void *clientDate, int mask);
-typedef void(*aeTimeProc)(struct aeEventLoop *eventloop, long long id, void *clientDate);
+typedef void(*aeTimeProc)(struct aeEventLoop *eventloop, long long id, void *clientData);
 
 typedef struct aeFileEvent
 {
