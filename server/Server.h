@@ -10,12 +10,9 @@
 typedef struct redisObject
 {
 	unsigned type;
-	int refcount;
+	int refcount;//用引用计数，就要再所以使用到的地方都使用，这个作为管理资源的条件。不然bug很难调。 涉及到资源共享的问题，引用计数是个不错的解决方式。
 	void *ptr;
 }robj;
-
-
-
 
 
 typedef struct redisDb

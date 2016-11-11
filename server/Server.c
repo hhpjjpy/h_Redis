@@ -397,7 +397,7 @@ int main()
 {
 	PirntVersion();
 
-	//goDaemon();
+	goDaemon();
 
 	initServer(&oredisServer);
 

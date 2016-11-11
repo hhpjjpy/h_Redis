@@ -349,7 +349,7 @@ long long timeInMilliseconds(void) {
 }
 
 
-int dictRehashMillisenconeds(dict *d, int ms)
+int dictRehashMilliseconeds(dict *d, int ms)
 {
 	long long start = timeInMilliseconds();
 	int rehashes = 0;
