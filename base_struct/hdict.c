@@ -164,7 +164,6 @@ int dictAdd(dict *d,void *key,void *val)
 	dictht *ht_ptr = dictIsRehashing(d) ? &d->ht[1] : &d->ht[0];
 
 	int index = dictHashKey(d, key) % ht_ptr->size;
-
 	dictEntry *p = ht_ptr->table[index];
 	while (p){
 		if (d->type->keyCompare(p->key, key)==0)
@@ -191,7 +190,6 @@ dictEntry* dictFind(dict *d, const void *key)//key有可能存在于2个空间�
 	for (int i = 0; i <= 1; i++){
 		dictht ht = d->ht[i];
 		int index = hashindex % ht.size;
-
 		dictEntry *p = ht.table[index];
 		while (p){
 			if (d->type->keyCompare(p->key, key)==0)
@@ -260,13 +258,14 @@ int dictDelete(dict *d,const void *key)
 				
 				if (pre) pre->next = p->next;
 				else  ht_ptr->table[index] = NULL;
-	
+				
 				if (d->type->keyFree) dictKeyFree(d,p->key);
 				if (d->type->valFree) dictValFree(d, p->val);
 				free(p);
 
 				ht_ptr->used--;
 				flag++;
+				break;
 			}
 
 			pre = p;

@@ -1,15 +1,11 @@
 #include "Server.h"
 
 #include <sys/time.h>
+#include <stdio.h>
 
 int removeExpire(redisDb *db, robj *key) //key is sds
 {
-	int ret1 = dictDelete(db->expires, (sds)key->ptr);
-	int ret2 = dictDelete(db->dicts, key);
-
-	if (ret1 == 0 && ret2 == 0)
-		return 0;
-	return -1;
+	return dictDelete(db->expires, key);
 }
 int expireIfNeeded(redisDb *db, robj *key)
 {
@@ -17,12 +13,11 @@ int expireIfNeeded(redisDb *db, robj *key)
 	gettimeofday(&tvl, NULL);
 	long long now = tvl.tv_sec * 1000 + tvl.tv_usec / 1000;
 	long long when = getExpire(db,key);
-
 	if (when == 0)
 		return 0;//为设置
 
 	if (now > when){
-		removeExpire(db, key);
+		int ret = (removeExpire(db, key) == 0) && (dbDelete(db, key))==0; //有问题，暂时这样
 		return -1; //表示已到过期时间
 	}
 
@@ -31,7 +26,7 @@ int expireIfNeeded(redisDb *db, robj *key)
 
 long long getExpire(redisDb *db, robj *key)
 {
-	long long *ptr = dictFetchValue(db->expires,(sds)key->ptr);
+	long long *ptr = dictFetchValue(db->expires,key);
 	if (ptr == NULL) 
 		return 0;
 	else 
@@ -45,7 +40,7 @@ int setExpire(redisDb *db, robj *key, long long lifetime)
 	 
 	long long *ptr = (long long *)malloc(sizeof(long long));
 	*ptr = tvl.tv_sec * 1000 + tvl.tv_usec / 1000 + lifetime;
-	return dictReplace(db->expires, key->ptr, ptr);
+	return dictReplace(db->expires, key, ptr);
 }
 
 robj* lookupkey(redisDb *db, robj *key)

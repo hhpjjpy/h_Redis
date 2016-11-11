@@ -7,7 +7,7 @@ obj = ../base_struct/hdict.o \
 	../eventloop/ae.o 
 
 all:db.c networking.c Server.c redisbase.a
-	gcc db.c networking.c Server.c redisbase.a -o h_redis
+	gcc -g db.c networking.c Server.c redisbase.a -o h_redis
 redisbase.a:$(obj)
 	ar crv redisbase.a ../base_struct/*.o ../base_net/*.o ../eventloop/*.o ../redis_src/*.o 
 
@@ -15,4 +15,4 @@ redisbase.a:$(obj)
 	gcc -g  -c $^ -o $@
 
 clean:
-	rm -rf h_redis redisbase.a
+	rm -rf h_redis redisbase.a $(obj)

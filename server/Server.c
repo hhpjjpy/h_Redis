@@ -51,13 +51,33 @@ void setCommand(redisClient *c)
 	}
 	addReplyOK(c);
 }
+
 void delCommand(redisClient *c)
 {
-	addReplyError(c, " now is not realize this commd, place wait ... ");
+	if (c->argc != 2){
+		addReplyError(c," invalid parameter ");
+		return;
+	}
+	removeExpire(c->db, c->argv[1]);
+	int ret = dbDelete(c->db, c->argv[1]);
+
+	if (ret == 0)
+		addReplyOK(c);
+	else
+		addReplyError(c," not have the key ");
 }
 void existsCommand(redisClient *c)
 {
-	addReplyError(c, " now is not realize this commd, place wait ... ");
+	if (c->argc != 2){
+		addReplyError(c, " invalid parameter ");
+		return;
+	}
+
+	robj *obj = dictFetchValue(c->db->dicts, c->argv[1]);
+	if (obj != NULL)
+		addReplyBulkCBuffer(c, "key is exists", 14);
+	else
+		addReplyBulkCBuffer(c,"key is not exists",18);
 }
 void getCommand(redisClient *c)
 {
@@ -155,7 +175,8 @@ void FreeLL(void *ll)
 }
 
 unsigned int dictSdsHash(const void *key) {
-	return dictGenHashFunction((unsigned char*)key, sdslen((char*)key));
+	sds sdskey = (sds)key;
+	return dictGenHashFunction((unsigned char*)sdskey, sdslen(sdskey));
 }
 
 int dictSdsKeyCompare( void *key1, void *key2)
@@ -191,6 +212,7 @@ int dictSdsObjKeyCompare(void *key1, void *key2)
 
 	l1 = sdslen((sds)realKey1);
 	l2 = sdslen((sds)realKey2);
+
 	if (l1 != l2) return l1 - l2;
 	return memcmp(realKey1, realKey2, l1);
 }
@@ -225,18 +247,27 @@ dictType dbDictType = {
 	NULL,
 	NULL,
 	dictSdsObjKeyCompare,
-	dictSdsFree,
+	RedisObjFree,
 	RedisObjFree
 };
 
 /*Db->expires */
 dictType exDictType = {
+	dictSdsObjHash,
+	NULL,
+	NULL,
+	dictSdsObjKeyCompare,
+	RedisObjFree,
+	FreeLL
+};
+
+dictType comdDictType = {
 	dictSdsHash,
 	NULL,
 	NULL,
 	dictSdsKeyCompare,
 	dictSdsFree,
-	FreeLL
+	NULL
 };
 
 redisServer  oredisServer;
@@ -278,7 +309,7 @@ void initServer(redisServer *s)
 {
 	s->pid = getpid();
 	s->db = CreateRedisDb();
-	s->commands = dictCreate(&exDictType);
+	s->commands = dictCreate(&comdDictType);
 	s->ae = aeCreateEventLoop(EVENT_NUM);
 	s->ip = SERVER_IP;
 	s->port = SERVER_PORT;
@@ -366,7 +397,7 @@ int main()
 {
 	PirntVersion();
 
-	goDaemon();
+	//goDaemon();
 
 	initServer(&oredisServer);
 
