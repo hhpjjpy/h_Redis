@@ -226,7 +226,6 @@ void dictSdsObjFree(void *val)
 	free(obj);
 }
 
-
 void RedisObjFree(void *pridata)
 {
 	robj *obj = (robj*)pridata;
@@ -272,7 +271,6 @@ dictType comdDictType = {
 
 redisServer  oredisServer;
 
-
 //服务端定时任务，现在只处理定时删除过期的key.
 void serverCron(aeEventLoop *ae,long long id ,void *clientData)
 { 
@@ -285,6 +283,9 @@ void serverCron(aeEventLoop *ae,long long id ,void *clientData)
 		expireIfNeeded(oredisServer.db,objkey);
 		FreeSdsObj(objkey);
  	}
+
+	dictRehashMilliseconeds(oredisServer.db->dicts,10);
+	dictRehashMilliseconeds(oredisServer.db->expires,10);
 }
 
 redisDb* CreateRedisDb()
@@ -294,8 +295,6 @@ redisDb* CreateRedisDb()
 	db->expires = dictCreate(&exDictType);
 }
 
-
-
 int clientMatch(void *client1,void *client2)
 {
 	redisClient *c1 = (redisClient*)client1;
@@ -303,7 +302,6 @@ int clientMatch(void *client1,void *client2)
 
 	return c1->id - c2->id;
 }
-
 
 void initServer(redisServer *s)
 {
@@ -391,7 +389,6 @@ void goDaemon()
 		if (fd > STDERR_FILENO) close(fd);
 	}
 }
-
 
 int main()
 {
